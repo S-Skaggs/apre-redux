@@ -48,4 +48,17 @@ describe('SigninComponent', () => {
     expect(component.signinForm.valid).toBeFalse();
     expect(component.errorMessage).toBe('Please fill in all fields.');
   });
+
+  // Test that the submit button has the proper tooltip/title text
+  it('should use "Click to sign in" for the submit button title property', () => {
+    // Reference the compiled component
+    const compiled = fixture.nativeElement;
+    // Reference the submit button
+    const submitButton = compiled.querySelector('.signin__button');
+
+    // Expect the button to exist
+    expect(submitButton).toBeTruthy();
+    // Expect the title to be "Click to sign in"
+    expect(submitButton.title).toEqual('Click to sign in');
+  });
 });
