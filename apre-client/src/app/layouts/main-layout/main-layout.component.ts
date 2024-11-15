@@ -316,8 +316,9 @@ export class MainLayoutComponent {
   ];
 
   customerFeedbackReports = [
-    { name: 'Channel Rating by Month', url: '/reports/customer-feedback/channel-rating-by-month' }
+    { name: 'Channel Rating by Month', url: '/reports/customer-feedback/channel-rating-by-month' },
     // Add more reports as needed
+    { name: 'Feedback by Salesperson', url: '/reports/customer-feedback/feedback-by-salesperson' }
   ];
 
   constructor(private cookieService: CookieService, private router: Router) {

@@ -10,6 +10,7 @@
 const express = require('express');
 const { mongo } = require('../../../utils/mongo');
 const createError = require('http-errors');
+const { error } = require('ajv/dist/vocabularies/applicator/dependencies');
 
 const router = express.Router();
 
@@ -104,49 +105,75 @@ router.get('/channel-rating-by-month', (req, res, next) => {
  * .then(response => response.json())
  *  .then(data => console.log(data));
  */
-router.get("/feedback-by-salesperson/:salesperson", (req, res, next) => {
+router.get('/feedback-by-salesperson/:salesperson', (req, res, next) => {
   // Surround our api in a try-catch for safety
   try {
-    // Reference salesperson
-    const salesPerson = req.params.salesperson;
+    // Query our database
+    mongo (async db => {
+      const feedbackForSalesPerson = await db.collection('customerFeedback').aggregate([
+        // Match on the provided salesperson
+        {
+          $match: {
+            salesperson: req.params.salesperson,
+          }
+        },
+        // Group our data
+        {
+          $group: {
+            _id: {
+              channel: '$channel',
+            },
+            totalSales: { $sum: 1 },
+            averageRating: { $avg: '$rating' }
+          }
+        },
+        // Create an object to project the required fields
+        {
+          $project: {
+            _id: 0,
+            channelName: '$_id.channel',
+            totalSales: 1,
+            averageRating: 1
+          }
+        }
+      ]).toArray();
 
-    // Query our database for an array of distinct salesperson
-    mongo(async (db) => {
-      const feedbackForSalesPerson = await db
-        .collection("customerFeedback")
-        .aggregate([
-          // Match on the provided personName
-          {
-            $match: {
-              salesperson: this.salesPerson,
-            },
-          },
-          // Group our data
-          {
-            $group: {
-              _id: {
-                channel: "$channel",
-              },
-              totalSales: { $sum: 1 },
-              averageRating: { $avg: "$rating" },
-            },
-          },
-          // Create an object to project the required fields
-          {
-            $project: {
-              _id: 0,
-              channelName: "$_id.channel",
-              totalSales: 1,
-              averageRating: 1,
-            },
-          },
-        ])
-        .toArray();
+      console.log(feedbackForSalesPerson);
       // Send our results to the response
       res.send(feedbackForSalesPerson);
     }, next);
   } catch (err) {
-    console.error("Error in /feedback-by-salesperson", err);
+    console.error('Error in /feedback-by-salesperson', err);
+    next(err);
+  }
+});
+
+/**
+ * @description
+ *
+ * GET /salespeople
+ *
+ * Fetches a list of distinct salesperson from the customerFeedback collection
+ *
+ * Example:
+ * fetch('/salespeople')
+ *  .then(response => response.json())
+ *  .then(data => console.log(data))
+ */
+router.get('/salespeople', (req, res, next) => {
+  // Surround our query in a try-catch for added safety
+  try {
+    mongo (async db => {
+      // Query our database for an array of distinct salesperson
+      const salespeople = await db.collection('customerFeedback').distinct('salesperson');
+
+      // Send our results to the response
+      res.send(salespeople);
+    }, next);
+  } catch (err) {
+    // Log the error
+    console.error('Error getting distinct salesperson', err);
+    // Pass our error object to the next middleware
     next(err);
   }
 });
