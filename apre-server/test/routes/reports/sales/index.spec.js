@@ -143,3 +143,67 @@ describe('Apre Sales Report API - Sales by Region', () => {
     });
   });
 });
+
+// Test suite for the sales report API to fetch an array of distinct salesperson
+describe('Apre Sales Report API - Salespeople', () => {
+  // Clear our mock before each test
+  beforeEach(() => {
+    mongo.mockClear();
+  });
+
+  // Test the sales/salespeople endpoint to return a 404 if the endpoint is invalid
+  it('should return a 404 for an invalid endpoint', async() => {
+    // Send a GET request to the misspelled endpoint
+    const response = await request(app).get('/api/reports/sales/salespeopled');
+
+    // Expect to receive a status code of 404
+    expect(response.status).toBe(404);
+
+    // Expect the response body to match the expected data
+    expect(response.body).toEqual({
+      message: 'Not Found',
+      status: 404,
+      type: 'error'
+    });
+  });
+
+  // Test the sales/salespeople endpoint to return an array of distinct salesperson
+  it('should fetch a list of distinct salesperson', async () => {
+    // Create a mock of the request and return data
+    mongo.mockImplementation(async (callback) => {
+      const db = {
+        collection: jest.fn().mockReturnThis(),
+        distinct: jest.fn().mockResolvedValue(['James Brown', 'John Doe', 'Emily Davis', 'Jane Smith'])
+      };
+      await callback(db);
+    });
+
+    // Send a GET request to the sales/salespeople endpoint
+    const response = await request(app).get('/api/reports/sales/salespeople');
+
+    // Expect the status code to be 200
+    expect(response.status).toBe(200);
+    // Expect the response body to match the expected data
+    expect(response.body).toEqual(['James Brown', 'John Doe', 'Emily Davis', 'Jane Smith']);
+  });
+
+  // Test the sales/salespeople endpoint with no salesperson found
+  it('should return 200 with an empty array if no salesperson is found', async () => {
+    // Create a mock of the request and return data
+    mongo.mockImplementation(async (callback) => {
+      const db = {
+        collection: jest.fn().mockReturnThis(),
+        distinct: jest.fn().mockResolvedValue([])
+      };
+      await callback(db);
+    });
+
+    // Send a GET request to the sales/salespeople endpoint
+    const response = await request(app).get('/api/reports/sales/salespeople');
+
+    // Expect the status code to be 200
+    expect(response.status).toBe(200);
+    // Expect the response to be an empty array
+    expect(response.body).toEqual([]);
+  });
+});

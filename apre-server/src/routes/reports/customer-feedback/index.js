@@ -92,4 +92,63 @@ router.get('/channel-rating-by-month', (req, res, next) => {
   }
 });
 
+/**
+ * @description
+ *
+ * GET /feedback-by-salesperson/:salesperson
+ *
+ * Fetches the total sales, average rating, and channel for a given salesperson
+ *
+ * Example:
+ * fetch('/feedback-by-salesperson/John Doe')
+ * .then(response => response.json())
+ *  .then(data => console.log(data));
+ */
+router.get("/feedback-by-salesperson/:salesperson", (req, res, next) => {
+  // Surround our api in a try-catch for safety
+  try {
+    // Reference salesperson
+    const salesPerson = req.params.salesperson;
+
+    // Query our database for an array of distinct salesperson
+    mongo(async (db) => {
+      const feedbackForSalesPerson = await db
+        .collection("customerFeedback")
+        .aggregate([
+          // Match on the provided personName
+          {
+            $match: {
+              salesperson: this.salesPerson,
+            },
+          },
+          // Group our data
+          {
+            $group: {
+              _id: {
+                channel: "$channel",
+              },
+              totalSales: { $sum: 1 },
+              averageRating: { $avg: "$rating" },
+            },
+          },
+          // Create an object to project the required fields
+          {
+            $project: {
+              _id: 0,
+              channelName: "$_id.channel",
+              totalSales: 1,
+              averageRating: 1,
+            },
+          },
+        ])
+        .toArray();
+      // Send our results to the response
+      res.send(feedbackForSalesPerson);
+    }, next);
+  } catch (err) {
+    console.error("Error in /feedback-by-salesperson", err);
+    next(err);
+  }
+});
+
 module.exports = router;

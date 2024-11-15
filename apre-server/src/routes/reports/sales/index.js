@@ -78,4 +78,33 @@ router.get('/regions/:region', (req, res, next) => {
   }
 });
 
+/**
+ * @description
+ *
+ * GET /salespeople
+ *
+ * Fetches a list of distinct salesperson from the sales collection
+ *
+ * Example:
+ * fetch('/salespeople')
+ *  .then(response => response.json())
+ *  .then(data => console.log(data))
+ */
+router.get('/salespeople', (req, res, next) => {
+  // Surround our query in a try-catch for added safety
+  try {
+    mongo (async db => {
+      // Query our database for an array of distinct salesperson
+      const salespeople = await db.collection('sales').distinct('salesperson');
+      // Send our results to the response
+      res.send(salespeople);
+    }, next);
+  } catch (err) {
+    // Log the error
+    console.error('Error getting distinct salesperson', err);
+    // Pass our error object to the next middleware
+    next(err);
+  }
+});
+
 module.exports = router;

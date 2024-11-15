@@ -76,3 +76,93 @@ describe('Apre Customer Feedback API', () => {
     });
   });
 });
+
+// Test suite for the customer feedback by salesperson endpoint
+describe('Apre Customer Feedback by Salesperson API', () => {
+  // Clear our mock before each test
+  beforeEach(() => {
+    mongo.mockClear();
+  });
+
+  // Test the /api/reports/customer-feedback/feedback-by-salesperson endpoint to return a 404 if the endpoint is invalid
+  it('should return a 404 for an invalid endpoint', async() => {
+    // Send a GET request to the misspelled endpoint
+    const response = await request(app).get('/api/reports/customer-feedback/feedback-by-salespersony');
+
+    // Expect to receive a status code of 404
+    expect(response.status).toBe(404);
+
+    // Expect the response body to match the expected data
+    expect(response.body).toEqual({
+      message: 'Not Found',
+      status: 404,
+      type: 'error'
+    });
+  });
+
+  // Test the /api/reports/customer-feedback/feedback-by-salesperson endpoint to return a 200 and no data for an invalid salesperson
+  it('should return a 200 status code and no data for an invalid salesperson', async() => {
+    // Create a mock of the database
+    mongo.mockImplementation(async (callback) => {
+      const db = {
+        collection: jest.fn().mockReturnThis(),
+        aggregate: jest.fn().mockReturnValue({
+          toArray: jest.fn().mockResolvedValue([])
+        })
+      };
+      await callback(db);
+    });
+
+    // Send a GET request to the /api/reports/customer-feedback/feedback-by-salesperson/:personName endpoint using the value of Invalid Name
+    const response = await request(app).get('/api/reports/customer-feedback/feedback-by-salesperson/Invalid Name');
+
+    // Expect the status code to be 200
+    expect(response.status).toBe(200);
+    // Expect the response to be an empty array
+    expect(response.body).toEqual([]);
+  });
+
+  // Test te /api/reports/customer-feedback/feedback-by-salesperson endpoint to return a 200 and data for a salesperson
+  it('should return a 200 status code and performance data for a valid salesperson name', async() => {
+    // Create a mock of the request and return data
+    mongo.mockImplementation(async (callback) => {
+      const db = {
+        collection: jest.fn().mockReturnThis(),
+        aggregate: jest.fn().mockReturnValue({
+          toArray: jest.fn().mockResolvedValue([
+            {
+              "channelName": "Online",
+              "totalSales": 1,
+              "averageRating": 3
+            },
+            {
+              "channelName": "Retail",
+              "totalSales": 2,
+              "averageRating": 4
+            }
+          ])
+        })
+      };
+      await callback(db);
+    });
+
+    // Send a GET request to the /api/reports/customer-feedback/feedback-by-salesperson/:personName endpoint using the value of Roger Rabbit
+    const response = await request(app).get('/api/reports/customer-feedback/feedback-by-salesperson/Roger Rabbit');
+
+    // Expect the status code to be 200
+    expect(response.status).toBe(200);
+    // Expect the response to be an empty array
+    expect(response.body).toEqual([
+      {
+        "channelName": "Online",
+        "totalSales": 1,
+        "averageRating": 3
+      },
+      {
+        "channelName": "Retail",
+        "totalSales": 2,
+        "averageRating": 4
+      }
+    ]);
+  });
+});
